@@ -16,7 +16,7 @@ rule all:
 #Running cutadapt and filtering reads less than 23 nt.
 rule cutadapter:
     input:
-        "fastq/{sample}.fastq.gz"
+        "resources/fastq/{sample}.fastq.gz"
     output:
         fastq = "trimmed_filter/{sample}_trimmed.fastq.gz"
     params:
