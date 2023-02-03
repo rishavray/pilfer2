@@ -1,0 +1,82 @@
+configfile: "config/config.yaml"
+samples = []
+tooldir = config["tooldir"]
+listfile = config["listfile"]
+
+
+with open(listfile) as infile:
+    for line in infile:
+        samples.append(line.strip())
+
+#Generating the target rule of PILFER output
+rule all:
+    input:
+        expand("pilfer_count/{sample}.pilfer.cluster", sample = samples)
+
+#Running cutadapt and filtering reads less than 23 nt.
+rule cutadapter:
+    input:
+        "fastq/{sample}.fastq.gz"
+    output:
+        fastq = "trimmed_filter/{sample}_trimmed.fastq.gz"
+    params:
+        minimum_l = config["minimum_l"],
+        maximum_l = config["maximum_l"],
+        adapter_seq = config["adapter_seq"]
+    priority: 50
+    threads: config["cores"]
+    log:
+        "logs/{sample}.cutadapt.txt"
+    shell:
+        """
+        mkdir -p trimmed_filter logs
+        cutadapt -a {params.adapter_seq} -j {threads} -m {params.minimum_l} -M {params.maximum_l} -o {output.fastq} {input} > {log}
+        """
+
+#Aligning against hg19 using the Shortstack algorithm
+rule align:
+    input:
+        "trimmed_filter/{sample}_trimmed.fastq.gz"
+    output:
+        touch("shortstack/{sample}/{sample}_trimmed.bam")
+    params:
+        bowtie_index = config["bowtie_index"],
+        cores = config["cores"],
+        outdir = "shortstack/{sample}"
+    log:
+        out = "logs/{sample}.shortstack_stdout.txt",
+        err = "logs/{sample}.shortstack_sterr.txt"
+    shell:
+        """
+        rm -r {params.outdir}
+        perl {tooldir}/ShortStack.pl --nohp --bowtie_cores {params.cores} --readfile {input} --outdir {params.outdir} --genomefile {params.bowtie_index} 2> {log.err} 1> {log.out}
+        """
+
+#Counting piRNA from bam files using bedtools
+rule countpiRNA:
+    input:
+        inbam = "shortstack/{sample}/{sample}_trimmed.bam"
+    output:
+        "count/{sample}.count"
+    params:
+        overlap_percentage = config["overlap_percentage"],
+        inbed = config["bedfile"]
+    shell:
+        """
+        mkdir -p count
+        bedtools intersect -a {params.inbed} -b {input.inbam} -s -c -r -f {params.overlap_percentage} | awk '$7!=0' > {output}
+        """
+
+#Run PILFER
+rule PILFER:
+    input:
+        "count/{sample}.count"
+    output:
+        "pilfer_count/{sample}.pilfer.cluster"
+    params:
+        pilfer_stdev = config["pilfer_stdev"]
+    shell:
+        """
+        mkdir -p pilfer_count
+        python {tooldir}/pilfer.py -i {input} -f {params.pilfer_stdev} > {output}
+        """

@@ -1,0 +1,10 @@
+tooldir : workflow/scripts
+bowtie_index : ./result/index/genome.fa
+cores : 12
+overlap_percentage : 0.95
+bedfile : resources/hsa.hg19.gold.collapsed.bed
+pilfer_stdev : 3.0
+listfile : resources/sralist.txt
+adapter_seq : AGATCGGAAGAG
+minimum_l : 23
+maximum_l : 35
