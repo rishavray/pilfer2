@@ -1,4 +1,10 @@
 #!/usr/bin/python
+
+'''
+Re-implentation of PILFER algorithm using pandas data frame, and also using RPM as the count score.
+This would allow for cross comparison of the scores across samples.
+'''
+
 import numpy as np
 from operator import itemgetter
 import sys, csv, os, argparse
@@ -10,10 +16,8 @@ parser.add_argument("-i", metavar="<input filename>", help="Input BED file. - if
 parser.add_argument("-f", default=3.0, metavar="<value>", type=float, help="The factor by which the read should be away from standard deviation to be called a peak")
 args = parser.parse_args()
 
-#Function for extracting columns
-def column(matrix, i):
-	return [row[i] for row in matrix]
 
+#Read data in pandas dataframe and covert to lists
 def read_data_pandas(infile_pt):
 	map = pd.read_csv(infile_pt, header=0, sep='\t', names = ['chr', 'start', 'end', 'pir', 'rpm', 'strand', 'count'])
 
@@ -26,6 +30,7 @@ def read_data_pandas(infile_pt):
 	map = map.values.tolist()
 	return mean, sd, map
 
+#Create map
 def create_dict(map):
 	for row in map:
 		if row[0] in chrom_dict:
@@ -33,8 +38,8 @@ def create_dict(map):
 		else:
 			chrom_dict[row[0]] = [row]
 	return chrom_dict
-#PILFER algorith
 
+#PILFER algorith
 def pilfer2(chrom_dict, mean, sd, columnidx):
 	pilfer_result = []
 	for key in chrom_dict:
@@ -88,7 +93,6 @@ def pilfer2(chrom_dict, mean, sd, columnidx):
 #Variables
 map = []
 chrom_dict = {}
-columnidx = 4
 
 infile = args.i
 sd_factor = args.f
@@ -115,7 +119,7 @@ for key in chrom_dict:
 	
 
 #Rul PILFER2
-pilfer_result = pilfer2(chrom_dict, mean, sd, columnidx)
+pilfer_result = pilfer2(chrom_dict, mean, sd, columnidx=4)
 
 for row in pilfer_result:
 	print(str(row[0]) + ":" + str(row[1]) + "-" + str(row[2]) + "\t" + str(row[3]))
