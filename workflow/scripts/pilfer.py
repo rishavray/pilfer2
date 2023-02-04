@@ -16,6 +16,7 @@ def column(matrix, i):
 #Variables
 map = []
 chrom_dict = {}
+columnidx = 6
 
 infile = args.i
 sd_factor = args.f
@@ -35,12 +36,12 @@ csvin = csv.reader(infile_pt, delimiter = "\t")
 for row in csvin:
 	row[1] = int(row[1])
 	row[2] = int(row[2])
-	row[4] = float(row[6])
+	row[columnidx] = float(row[columnidx])
 	map.append(row)
 
 #Mean and SD calculations
-mean = np.mean(column(map,4))
-sd = np.std(column(map,4))
+mean = np.mean(column(map,columnidx))
+sd = np.std(column(map,columnidx))
 
 #Creating the dictionary
 for row in map:
@@ -60,7 +61,7 @@ for key in chrom_dict:
 	j = 0
 	while j < len(chrom_dict[key]):
 		row = chrom_dict[key][j]
-		if (row[4] - mean)/sd >= sd_factor:
+		if (row[columnidx] - mean)/sd >= sd_factor:
 			start_bp = row[2] - 100000
 			if start_bp < 0:
 				start_bp = 0
@@ -75,7 +76,7 @@ for key in chrom_dict:
 			#Calculate the initial score and start index
 			for read in chrom_dict[key]:
 				if read[1] >= start_bp and read[1] <= start_bp + 100000:
-					score += read[4]
+					score += read[columnidx]
 					if start_read_index == -1:
 						start_read_index = chrom_dict[key].index(read)
 						start_bp = read[1]
@@ -86,9 +87,9 @@ for key in chrom_dict:
 			max_end = end_read_index
 			#calculating optimum 100KB window
 			for i in range(start_read_index+1,cur_read_index+1):
-				new_score = score - chrom_dict[key][i-1][4]
+				new_score = score - chrom_dict[key][i-1][columnidx]
 				while  end_read_index+1 < len(chrom_dict[key]) and chrom_dict[key][end_read_index +1][1] <= chrom_dict[key][i][1] + 100000 :
-					new_score += chrom_dict[key][end_read_index+1][4]
+					new_score += chrom_dict[key][end_read_index+1][columnidx]
 					end_read_index += 1
 				
 				if new_score > score:
