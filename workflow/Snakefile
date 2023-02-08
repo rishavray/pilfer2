@@ -11,7 +11,8 @@ with open(listfile) as infile:
 #Generating the target rule of PILFER output
 rule all:
     input:
-        expand("pilfer_count/{sample}.pilfer.cluster", sample = samples)
+        expand("pilfer_count/{sample}.pilfer.cluster", sample = samples),
+        'output.txt'
 
 #Running cutadapt and filtering reads less than 23 nt.
 rule cutadapter:
@@ -79,4 +80,15 @@ rule PILFER:
         """
         mkdir -p pilfer_count
         python {tooldir}/pilfer.py -i {input} -f {params.pilfer_stdev} > {output}
+        """
+#Aggregate all the result in a table
+rule aggregate:
+    output:
+        "output.txt"
+    shell:
+        """
+        ls -1 count/*.count | sed 's/count\///g' | awk 'BEGIN{{printf "piR\t"}}{{printf $1"\t";}}END{{print ""}}' > output.txt
+        ls -1  count/*.count | parallel 'cat {{}} | cut -f7 {{}} > count/{{/.}}_clean.txt' 
+        ls -1  count/*.count | head -1 | xargs cut -f4 > genes.txt
+        paste genes.txt count/*_clean.txt >> output.txt
         """

@@ -21,6 +21,8 @@ args = parser.parse_args()
 def read_data_pandas(infile_pt):
 	map = pd.read_csv(infile_pt, header=0, sep='\t', names = ['chr', 'start', 'end', 'pir', 'rpm', 'strand', 'count'])
 
+	cols = ["count"]
+	map = map[map[cols] > 0]
 	rpm_fact = map['count'].sum()/1000000
 	map['rpm'] = map['count']*rpm_fact
 	#print(map.head())
